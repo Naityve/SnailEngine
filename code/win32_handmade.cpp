@@ -10,7 +10,11 @@
 */
 
 #include <windows.h>
+#include <wingdi.h>
 #include <stdio.h>
+
+
+// lpfnWndProc Declaration
 
 LRESULT CALLBACK
 MainWindowCallback( HWND Window,
@@ -18,76 +22,122 @@ MainWindowCallback( HWND Window,
                     WPARAM WParam,
                     LPARAM LParam)
 {
+    LRESULT Result = 0;
+    
     switch(Message)
     {
+
         case WM_SIZE:
         {
-        } break;
+            OutputDebugStringA("WM_SIZE \n");
+        } break; 
 
         case WM_DESTROY:
         {
-
+            OutputDebugStringA("WM_DESTROY \n");
         } break;
 
         case WM_CLOSE:
         {
-
+            OutputDebugStringA("WM_CLOSE \n");
         } break;
 
         case WM_ACTIVATEAPP:
         {
-
+            OutputDebugStringA("WM_ACTIVATEAPP \n");
         } break;
+
+        case WM_PAINT:
+        {
+            PAINTSTRUCT Paint;
+            HDC DeviceContext = BeginPaint(Window, &Paint);
+            int X = Paint.rcPaint.left;
+            int Y = Paint.rcPaint.top;
+            int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
+            int Width = Paint.rcPaint.right - Paint.rcPaint.left;
+            static DWORD Operation = WHITENESS;
+            PatBlt(DeviceContext, X, Y, Width, Height, WHITENESS);
+            if (Operation == WHITENESS)
+            {
+                Operation = BLACKNESS;
+            }
+            else
+            {
+                Operation = WHITENESS;
+            }
+            EndPaint(Window, &Paint);
+        } break; 
 
         default:
         {
-
+            //OutputDebugStringA("default \n");
+            Result = DefWindowProc(Window, Message, WParam, LParam);
         } break;
     }
+
+    return(Result);
+
 }
 
-// Windows Desktop Window Declaration
+// MAIN FUNCTION
 
-/*
-typedef struct tagWNDCLASS {
-    UINT style;
-    WNDPROC lpfnWndProc;
-    int cbClsExtra;
-    int cbWndExtra;
-    HINSTANCE hInstance;
-    HICON hIcon;
-    HCURSOR hCursor;
-    HBRUSH hbrBackground;
-    LPCTSTR lpszMenuName;
-    LPCTSTR lpszClassName;
-} WNDCLASS, *PWNDCLASS;
-*/
-
-// nCmdShow is the size the cmd window is set to. Default, minimized, maximized. 
-
-int CALLBACK WinMain(HINSTANCE Instance,
-                     HINSTANCE PrevInstance,
-                     LPSTR CommandLine,
-                     int ShowCode)
-{
+int CALLBACK 
+WinMain(HINSTANCE Instance,
+        HINSTANCE PrevInstance,
+        LPSTR CommandLine,
+        int ShowCode)
+{   
     WNDCLASS WindowClass = {};
+    WindowClass.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
+    WindowClass.lpfnWndProc = MainWindowCallback;
+    WindowClass.hInstance = Instance; 
+//  WindowClass.hIcon = Instance;
+    WindowClass.lpszClassName = "HandmadeHeroWindowClass";
 
-    // set WNDCLASS properties
+    if(RegisterClass(&WindowClass))
+    {
+        HWND WindowHandle =
+            CreateWindowEx(
+                0,
+                WindowClass.lpszClassName,
+                "Handmade Hero",
+                WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                0,
+                0,
+                Instance,
+                0
+            );
+        if(WindowHandle)
+        {
+            for(;;)
+            {
+                MSG Message;
+                BOOL MessageResult = GetMessage(&Message, 0, 0, 0);
+                if(MessageResult > 0)
+                {
+                    TranslateMessage(&Message);
+                    DispatchMessage(&Message);
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        else
+        {
+            // Logging Error Handling
+        }
+    }
+    else
+    {
+        // Logging Error Handling
+    }
 
-    // CS_OWNDC : Allocates a unique device context for each window in the class.
-    // CS_HREDRAW : Redraws the entire window if a movement or 
-    //              size adjustment changes the width of the client area
-    // CS_VREDRAW : Redraws the entire window if a movement or
-    //              size adjustment changes the height of the client area
-    WindowClass.style = CS_OWNDC|CS_HREDRAW|CS_VREDRAW; 
-
-    // lpfnWndProc : A pointer to the window procedure.
-    WindowClass.lpfnWndProc = ;
-    WindowClass.hInstance = Instance;
-//  WindowClass.hIcon
-    WindowClass.lpszClassName = "SnailEngineWindowClass";
-
-    // MessageBox(0, "Hello Snail!","SnailEngine", MB_OK|MB_ICONINFORMATION );
     return(0);
 }
 
