@@ -1,1 +1,0 @@
-DIB = Device Independent Bitmap
