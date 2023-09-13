@@ -29,6 +29,8 @@ typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
 
+typedef int32 bool32;
+
 struct win32_offscreen_buffer 
 {
     BITMAPINFO Info;
@@ -42,6 +44,9 @@ struct win32_offscreen_buffer
 global_variable bool GlobalRunning;
 global_variable win32_offscreen_buffer GlobalBackbuffer;
 
+// Testing Globals
+global_variable bool inputTest;
+
 struct win32_window_dimension
 {
     int Width;
@@ -53,10 +58,10 @@ struct win32_window_dimension
 typedef X_INPUT_GET_STATE(x_input_get_state);
 X_INPUT_GET_STATE(XInputGetStateStub)
 {
-    return(0);
+    return(ERROR_DEVICE_NOT_CONNECTED);
 }
 global_variable x_input_get_state *XInputGetState_ = XInputGetStateStub;
-#define XInputGetState XInputGetState_;
+//#define XInputGetState XInputGetState_;
 
 // Note: XInputSetState
 
@@ -64,18 +69,22 @@ global_variable x_input_get_state *XInputGetState_ = XInputGetStateStub;
 typedef X_INPUT_SET_STATE(x_input_set_state);
 X_INPUT_SET_STATE(XInputSetStateStub)
 {
-    return(0);
+    return(ERROR_DEVICE_NOT_CONNECTED);
 }
 global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
-#define XInputSetState XInputSetState_;
+//#define XInputSetState XInputSetState_; // does not compile in c++, only in C99. fuck you stroustrup  
 
 internal void Win32LoadXInput(void)
 {
-    HMODULE XInputLibrary = LoadLibrary("xinput1_3.dll");
+    HMODULE XInputLibrary = LoadLibrary("xinput1_3.dll"); // for older version of win32
+    if(!XInputLibrary)
+    {
+        XInputLibrary = LoadLibraryA("xinput1_4.dll"); // because we're on newest windows "xinput1_3.dll" does not work
+    }
     if(XInputLibrary)
     {
-        XInputGetState = (x_input_get_state *)GetProcAddress(XInputLibrary, "XInputGetState");
-        XInputSetState = (x_input_set_state *)GetProcAddress(XInputLibrary, "XInputSetState");
+        XInputGetState_ = (x_input_get_state *)GetProcAddress(XInputLibrary, "XInputGetState");
+        XInputSetState_ = (x_input_set_state *)GetProcAddress(XInputLibrary, "XInputSetState");
     }
 }
 
@@ -89,16 +98,16 @@ internal win32_window_dimension Win32GetWindowDimension(HWND Window)
     return(Result);
 }
 
-internal void RenderWeirdGradient(win32_offscreen_buffer Buffer, int XOffSet, int YOffSet)
+internal void RenderWeirdGradient(win32_offscreen_buffer *Buffer, int XOffSet, int YOffSet)
 {
-    uint8 *Row = (uint8 *)Buffer.Memory; 
+    uint8 *Row = (uint8 *)Buffer->Memory; 
     for(int Y = 0;
-        Y < Buffer.Height;
+        Y < Buffer->Height;
         Y++)
     {
         uint8 *Pixel = (uint8 *)Row;
         for(int X = 0;
-            X < Buffer.Width;
+            X < Buffer->Width;
             X++)
         {
             //*Pixel = 170;//blue
@@ -115,7 +124,7 @@ internal void RenderWeirdGradient(win32_offscreen_buffer Buffer, int XOffSet, in
             *Pixel = 0; //pad
             Pixel++;
         }
-        Row += Buffer.Pitch;
+        Row += Buffer->Pitch;
     } 
 }
 
@@ -149,16 +158,16 @@ Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, int Height)
 }
 
 internal void
-Win32DisplayBufferInWindow(HDC DeviceContext, int WindowWidth, int WindowHeight, win32_offscreen_buffer Buffer)
+Win32DisplayBufferInWindow(HDC DeviceContext, int WindowWidth, int WindowHeight, win32_offscreen_buffer *Buffer)
 {
     // TODO: Aspect ratio correction
     StretchDIBits(  DeviceContext, 
                     /*X, Y, Width, Height,
                     X, Y, Width, Height,*/
                     0, 0, WindowWidth, WindowHeight,
-                    0, 0, Buffer.Width, Buffer.Height,
-                    Buffer.Memory,
-                    &Buffer.Info,
+                    0, 0, Buffer->Width, Buffer->Height,
+                    Buffer->Memory,
+                    &Buffer->Info,
                     DIB_RGB_COLORS, SRCCOPY);
 }
 
@@ -186,6 +195,85 @@ Win32MainWindowCallback( HWND Window,
             GlobalRunning = false;
         } break;
 
+        case WM_SYSKEYDOWN:
+        case WM_SYSKEYUP:
+        case WM_KEYDOWN:
+        case WM_KEYUP:
+        {
+            inputTest = false;
+
+            uint32 VKCode = WParam;
+            bool WasDown = ((LParam & (1 << 30)) != 0); // check if key was down or up before being pressed
+            bool IsDown = ((LParam & (1 << 30)) == 0); // checks if a key is down
+            if(VKCode == 0x57) // up "W"
+            {
+
+            }
+            else if(VKCode == 0x41) // left "A"
+            {
+
+            }
+            else if(VKCode == 0x53) // down "S"
+            {
+                
+            }
+            else if(VKCode == 0x44) // right "D"
+            {
+                
+            }
+            else if(VKCode == 0x51) // utility "Q"
+            {
+                
+            }
+            else if(VKCode == 0x45) // heal "E"
+            {
+                
+            }
+            else if(VKCode == 0x52) // reload "R"
+            {
+                
+            }
+            else if(VKCode == 0x46) // interact "F" 0x46
+            {
+                inputTest = true;
+            }
+            else if(VKCode == 0x47) // drop things "G"
+            {
+                
+            }
+            else if(VKCode == 0x4A) // journal "J"
+            {
+                
+            }
+            else if(VKCode == VK_SPACE) // jump
+            {
+                
+            }
+            else if(VKCode == VK_CONTROL) // crouch
+            {
+                
+            }
+            else if(VKCode == VK_UP) // arrow key up
+            {
+                
+            }else if(VKCode == VK_LEFT) // arrow key left
+            {
+                
+            }else if(VKCode == VK_DOWN) // arrow key down
+            {
+                
+            }else if(VKCode == VK_RIGHT) // arrow key right
+            {
+                
+            }
+
+            bool32 AltKeyWasDown = (LParam & (1 << 29));
+            if((VKCode == VK_F4) && AltKeyWasDown)
+            {
+                GlobalRunning = false;
+            }
+        } break;
+
         case WM_CLOSE:
         {   
             GlobalRunning = false;
@@ -201,7 +289,7 @@ Win32MainWindowCallback( HWND Window,
             PAINTSTRUCT Paint;
             HDC DeviceContext = BeginPaint(Window, &Paint);
             win32_window_dimension Dimension = Win32GetWindowDimension(Window);
-            Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, GlobalBackbuffer);
+            Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, &GlobalBackbuffer);
             EndPaint(Window, &Paint);
         } break; 
 
@@ -226,7 +314,7 @@ WinMain(HINSTANCE Instance,
 {   
     Win32LoadXInput();
 
-    WNDCLASS WindowClass = {};
+    WNDCLASSA WindowClass = {};
 
     //win32_window_dimension Dimension = Win32GetWindowDimension(Window);
     Win32ResizeDIBSection(&GlobalBackbuffer, 1280, 720);
@@ -304,21 +392,25 @@ WinMain(HINSTANCE Instance,
                     
                         int16 StickX = Pad->sThumbLX;
                         int16 StickY = Pad->sThumbLY;
+
+                        
+                        YOffSet+=StickY >> 16;
+                        XOffSet-=StickX >> 16; // reverse the direction so pointing stick left moves texture left
+                        
                     } 
                     else 
                     {
                         // controller not connected
+                       
                     }
                 }
 
-                RenderWeirdGradient(GlobalBackbuffer, XOffSet, YOffSet);
+                RenderWeirdGradient(&GlobalBackbuffer, XOffSet, YOffSet);
 
                 HDC DeviceContext = GetDC(Window);
                 win32_window_dimension Dimension = Win32GetWindowDimension(Window);
-                Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, GlobalBackbuffer);
+                Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, &GlobalBackbuffer);
                 ReleaseDC(Window, DeviceContext);
-                //XOffSet++;
-                YOffSet+=1;
             }
         }
         else
