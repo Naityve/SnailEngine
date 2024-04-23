@@ -18,4 +18,10 @@
 
 #include "../raylib/src/raylib.h"
 
+//
+// main.c func defs
+//
+
+
+
 #endif
